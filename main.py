@@ -1,7 +1,12 @@
 
 from process import Process, ScheduleReport
 from scheduler import Scheduler
-
+from advisor import (
+    OBJECTIVES,
+    SchedulingAdvisor,
+    run_candidate_algorithms,
+    score_algorithms,
+)
 
 
 def display_report(report: ScheduleReport) -> None:
@@ -123,6 +128,64 @@ def display_comparison(reports: list[ScheduleReport]) -> None:
     print(f"Lowest average response time: {best_response.algorithm}")
 
 
+def display_advisor_result(
+    advisor: SchedulingAdvisor,
+    processes: list[Process],
+    objective: str,
+    quantum: int,
+) -> None:
+    """Recommend an algorithm and verify it against simulation results."""
+    recommendation = advisor.recommend(
+        processes,
+        objective=objective,
+        quantum=quantum,
+    )
+
+    print("\n" + "=" * 76)
+    print("AI SCHEDULING ADVISOR")
+    print("=" * 76)
+    print(f"Objective: {OBJECTIVES[objective]}")
+    print(f"Recommended algorithm: {recommendation.algorithm_name}")
+    print(f"Model score: {recommendation.model_score:.1%}")
+    print(f"\nExplanation: {recommendation.explanation}")
+    print(f"\nTrade-off: {recommendation.trade_off}")
+
+    reports = run_candidate_algorithms(processes, quantum)
+
+    # Show the Gantt chart and metrics for the recommendation.
+    display_report(reports[recommendation.algorithm_key])
+
+    # Compare all algorithms using their actual simulation results.
+    display_comparison(list(reports.values()))
+
+    actual_scores = score_algorithms(reports, objective)
+    actual_best = min(
+        actual_scores,
+        key=lambda key: (actual_scores[key], list(reports).index(key)),
+    )
+
+    print("\n" + "-" * 76)
+    print("RECOMMENDATION VALIDATION")
+    print("-" * 76)
+    print(
+        f"AI recommendation: {recommendation.algorithm_name} "
+        f"(objective score: "
+        f"{actual_scores[recommendation.algorithm_key]:.3f})"
+    )
+    print(
+        f"Best measured algorithm: {reports[actual_best].algorithm} "
+        f"(objective score: {actual_scores[actual_best]:.3f})"
+    )
+
+    if recommendation.algorithm_key == actual_best:
+        print("Result: The recommendation matches the measured winner.")
+    else:
+        print(
+            "Result: The recommendation did not match the measured "
+            "winner for this workload."
+        )
+
+
 def read_integer(
     prompt: str,
     minimum: int,
@@ -186,11 +249,13 @@ def read_processes() -> list[Process]:
 
 
 
+
 def main() -> None:
-    """Run selected CPU scheduling algorithms interactively."""
+    """Run scheduling algorithms or request an AI recommendation."""
     try:
         processes = read_processes()
         scheduler = Scheduler(processes)
+        advisor = None
 
         while True:
             print("\n" + "=" * 42)
@@ -203,21 +268,63 @@ def main() -> None:
             print("5. Priority Scheduling (Non-Preemptive)")
             print("6. Priority Scheduling (Preemptive)")
             print("7. Run All Algorithms")
-            print("8. Exit")
+            print("8. AI Scheduling Advisor")
+            print("9. Exit")
             print("=" * 42)
 
-            choice = read_integer(
-                "Select an option",
-                minimum=1,
-            )
+            choice = read_integer("Select an option", minimum=1)
 
-            if choice > 8:
-                print("Invalid option. Please choose between 1 and 8.")
+            if choice > 9:
+                print("Invalid option. Please choose between 1 and 9.")
                 continue
 
-            if choice == 8:
+            if choice == 9:
                 print("Exiting CPU Scheduling Simulator. Goodbye!")
                 break
+
+            if choice == 8:
+                if advisor is None:
+                    print("\nTraining the AI advisor on synthetic workloads...")
+                    try:
+                        advisor = SchedulingAdvisor(training_samples=300)
+                    except ImportError as error:
+                        print(f"\n{error}")
+                        continue
+
+                    print("AI advisor is ready.")
+
+                objective_options = list(OBJECTIVES)
+
+                print("\nChoose the optimization objective:")
+                for index, objective in enumerate(
+                    objective_options, start=1
+                ):
+                    print(f"{index}. {OBJECTIVES[objective]}")
+
+                objective_choice = read_integer(
+                    "Select objective",
+                    minimum=1,
+                )
+
+                if objective_choice > len(objective_options):
+                    print("Invalid objective selection.")
+                    continue
+
+                objective = objective_options[objective_choice - 1]
+
+                quantum = read_integer(
+                    "Round Robin time quantum",
+                    minimum=1,
+                    default=3,
+                )
+
+                display_advisor_result(
+                    advisor,
+                    processes,
+                    objective,
+                    quantum,
+                )
+                continue
 
             if choice == 4 or choice == 7:
                 quantum = read_integer(
@@ -238,14 +345,9 @@ def main() -> None:
             }
 
             if choice == 7:
-                reports = [
-                    scheduler.first_come_first_served(),
-                    scheduler.shortest_job_first(),
-                    scheduler.shortest_remaining_time_first(),
-                    scheduler.round_robin(quantum),
-                    scheduler.priority_scheduling(),
-                    scheduler.preemptive_priority_scheduling(),
-                ]
+                reports = list(
+                    run_candidate_algorithms(processes, quantum).values()
+                )
             else:
                 reports = [algorithm_map[choice]()]
 

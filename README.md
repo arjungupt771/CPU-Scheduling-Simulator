@@ -1,16 +1,21 @@
 # CPU Scheduling Simulator
 
-A Python-based CPU Scheduling Simulator that implements six operating system scheduling algorithms, visualizes process execution using Gantt charts, and compares scheduling performance through waiting, turnaround, and response time metrics.
+A Python-based CPU Scheduling Simulator that implements six operating-system scheduling algorithms, visualizes process execution with Gantt charts, compares scheduling metrics, and includes a machine-learning-powered AI Scheduling Advisor.
+
+The advisor uses a Random Forest classifier trained on synthetic workloads to recommend an algorithm based on the selected optimization objective. Its recommendations can be evaluated against the measured results of all six scheduling algorithms.
 
 ## Features
 
-- **Six CPU scheduling algorithms** with preemptive and non-preemptive implementations.
-- **Interactive terminal interface** for entering processes and selecting algorithms.
-- **Gantt chart visualization** with process labels, execution intervals, and CPU idle periods.
-- **Process-level metrics** including start time, completion time, waiting time, turnaround time, and response time.
-- **Algorithm comparison** based on average waiting, turnaround, and response times.
-- **Input validation** for process IDs, burst times, arrival times, priorities, and Round Robin time quantum.
-- **Automated testing** using pytest.
+- **Six CPU scheduling algorithms** covering preemptive and non-preemptive scheduling.
+- **AI Scheduling Advisor** powered by scikit-learn's Random Forest classifier.
+- **Five optimization objectives** for balanced performance, waiting time, turnaround time, response time, and priority-aware waiting.
+- **15 workload features** describing process counts, burst times, arrival times, priorities, time quantum, and relationships between workload attributes.
+- **Gantt chart visualization** showing process execution intervals and CPU idle periods.
+- **Process-level performance metrics** including start time, completion time, waiting time, turnaround time, and response time.
+- **Algorithm comparison** using measured simulation results.
+- **Recommendation validation** comparing the ML prediction with the best measured algorithm for the current workload.
+- **Synthetic workload evaluation** for measuring recommendation accuracy and score gaps.
+- **Automated testing** with pytest.
 
 ## Scheduling Algorithms
 
@@ -25,9 +30,47 @@ A Python-based CPU Scheduling Simulator that implements six operating system sch
 
 **Priority convention:** A lower numerical value represents a higher priority.
 
+## AI Scheduling Advisor
+
+The advisor trains a Random Forest classifier using generated synthetic workloads. For each training workload, it simulates all six algorithms and uses the selected objective's measured scores to determine the training label.
+
+### Optimization objectives
+
+| Objective | Goal |
+|---|---|
+| Balanced performance | Balance average waiting, turnaround, and response times. |
+| Lowest average waiting time | Minimize the average time processes spend waiting for CPU execution. |
+| Lowest average turnaround time | Minimize the average time from process arrival to completion. |
+| Lowest average response time | Minimize the time until processes first receive CPU execution. |
+| Priority-aware waiting time | Minimize a priority-weighted waiting-time score. |
+
+### Feature engineering
+
+The model uses 15 numeric features, including:
+
+- Number of processes.
+- Average, standard deviation, minimum, and maximum burst time.
+- Relative burst-time variation.
+- Average arrival time, arrival-time standard deviation, and arrival-time span.
+- Average priority, priority standard deviation, and priority diversity.
+- Round Robin time quantum.
+- Correlation between process priorities and burst times.
+- Correlation between process priorities and arrival times.
+
+### Recommendation workflow
+
+1. Collect the process workload and the selected optimization objective.
+2. Extract numeric workload features.
+3. Predict a scheduling algorithm using the trained classifier.
+4. Display the recommendation and its trade-offs.
+5. Simulate all six algorithms for the current workload.
+6. Compare measured metrics and check whether the recommendation matches the best measured result.
+
+The model's reported score is a predicted class probability, not a guarantee of optimal performance. The simulator's measured comparison provides an additional validation layer.
+
 ## Scheduling Metrics
 
-The simulator calculates the following metrics for each process:
+For each process, the simulator calculates:
 
 - **Arrival Time:** Time at which the process becomes available.
 - **Burst Time:** CPU execution time required by the process.
@@ -37,75 +80,63 @@ The simulator calculates the following metrics for each process:
 - **Waiting Time:** Total time spent waiting for CPU execution.
 - **Response Time:** Time from arrival until the process first receives CPU execution.
 
-The formulas used are:
+The formulas are:
 
 - Turnaround Time = Completion Time − Arrival Time
 - Waiting Time = Turnaround Time − Burst Time
 - Response Time = First Start Time − Arrival Time
 
-The simulator also calculates average waiting, turnaround, and response times across all processes.
+The simulator calculates average waiting, turnaround, and response times across all processes.
 
 ## Project Structure
 
 ```text
-Cpp-Projects/
+CPU-Scheduling-Simulator/
 ├── main.py
 ├── process.py
 ├── scheduler.py
+├── advisor.py
+├── evaluate_advisor.py
+├── requirements.txt
 ├── tests/
-│   └── test_scheduler.py
+│   ├── test_scheduler.py
+│   └── test_advisor.py
 ├── .gitignore
 └── README.md
-```
 
-## Requirements
 
+Requirements
 - Python 3.10 or later
-- pytest for running the test suite
+- scikit-learn for the AI Scheduling Advisor
+- pytest for running tests
+Getting Started
+1. Clone the repository
+git clone https://github.com/arjungupt771/CPU-Scheduling-Simulator.git
+cd CPU-Scheduling-Simulator
 
-The scheduling simulator itself uses Python's standard library. Pytest is needed only for testing.
 
-## Getting Started
-
-### 1. Clone the repository
-
-```bash
-git clone <YOUR_REPOSITORY_URL>
-cd Cpp-Projects
-```
-
-Replace `<YOUR_REPOSITORY_URL>` with your GitHub repository URL.
-
-### 2. Create a virtual environment
-
-```bash
+2. Create and activate a virtual environment
+Linux or macOS:
 python3 -m venv .venv
-```
-
-Activate it on Linux or macOS:
-
-```bash
 source .venv/bin/activate
-```
 
-On Windows:
 
-```powershell
-.venv\Scripts\activate
-```
+Windows PowerShell:
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 
-### 3. Run the simulator
 
-```bash
+3. Install dependencies
+python -m pip install -r requirements.txt
+
+
+4. Run the simulator
 python main.py
-```
 
-Enter the number of processes and provide each process's ID, burst time, arrival time, and priority when prompted.
 
-### 4. Select a scheduling algorithm
-
-The interactive menu provides these options:
-
+Enter the number of processes, then provide each process's ID, burst time, arrival time, and priority.
+5. Choose an option
+The interactive menu provides:
 1. First Come First Served (FCFS)
 2. Shortest Job First (SJF)
 3. Shortest Remaining Time First (SRTF)
@@ -113,72 +144,62 @@ The interactive menu provides these options:
 5. Priority Scheduling (Non-Preemptive)
 6. Priority Scheduling (Preemptive)
 7. Run All Algorithms
-8. Exit
+8. AI Scheduling Advisor
+9. Exit
+For Round Robin, provide a positive time quantum. Press Enter to use the default value of 3.
+When using the AI advisor for the first time, the model trains on synthetic workloads. Select an optimization objective and time quantum to receive a recommendation and compare it with the measured simulation results.
+Evaluating the AI Advisor
+Run the evaluation script:
+python evaluate_advisor.py
 
-For Round Robin, enter a positive time quantum. Press Enter to use the default quantum of 3.
 
-The menu allows you to run multiple algorithms against the same set of processes without re-entering process information.
+The default experiment trains the advisor on 1,500 synthetic workloads and evaluates it on 100 generated workloads using a separate random seed.
+The evaluation reports:
+- Exact-match rate: Percentage of workloads for which the recommendation is among the algorithms achieving the best measured score. Tied best algorithms count as correct.
+- Average score gap: Difference between the recommended algorithm's score and the best measured score. Zero indicates no gap.
+Lower scores are better for all five objectives. Score gaps use objective-specific units and should only be compared within the same objective.
+Five-seed benchmark
+The advisor was evaluated on five generated test sets of 100 workloads each, using training seed 42 and evaluation seeds 2026 through 2030. Each run used 1,500 training workloads.
+Objective	Average exact-match rate	Observed range
+Balanced performance	77.0%	75–80%
+Waiting time	82.8%	77–86%
+Turnaround time	82.8%	77–86%
+Response time	77.0%	66–84%
+Priority-aware waiting	59.4%	56–63%
+These figures describe this particular synthetic-workload experiment. They are not guarantees of accuracy on real operating-system workloads, and further testing on additional workload distributions is needed to establish generalization.
+Running Tests
+Install dependencies if necessary:
+python -m pip install -r requirements.txt
 
-## Example Output
-
-A scheduling report contains a Gantt chart, a process metrics table, and average performance metrics.
-
-```text
-Gantt Chart:
-
-+-------+-------+-------+
-|  P1   |  P2   |  P3   |
-+-------+-------+-------+
-0       5       8       16
-
-Average waiting time:    3.33
-Average turnaround time: 8.67
-Average response time:   3.33
-```
-
-The values above illustrate the output format; actual results depend on the processes and scheduling algorithm selected.
-
-When the CPU has no process available to execute, the timeline records an `IDLE` segment.
-
-## Running Tests
-
-Install pytest if it is not already installed:
-
-```bash
-python -m pip install pytest
-```
 
 Run the complete test suite:
-
-```bash
 python -m pytest -v
-```
 
-The project currently has **25 passing tests** covering scheduling calculations, preemption, idle periods, Round Robin behavior, input validation, menu interactions, and Gantt chart formatting.
 
-## Implementation Details
-
-- `process.py` defines the process model, scheduling results, timeline segments, and report metrics.
-- `scheduler.py` implements the scheduling algorithms and calculates process execution metrics.
-- `main.py` handles terminal input, algorithm selection, report formatting, and performance comparisons.
-- `tests/test_scheduler.py` contains the automated test suite.
-
-## Scope and Limitations
-
+The current test suite contains 38 tests covering scheduling calculations, preemption, idle periods, Round Robin behavior, input validation, menu interactions, Gantt chart formatting, feature extraction, objective scoring, and advisor recommendations.
+Implementation Details
+- process.py defines the process model, scheduling results, timeline segments, and report metrics.
+- scheduler.py implements the six scheduling algorithms.
+- advisor.py extracts workload features, generates synthetic training workloads, trains the Random Forest models, and produces recommendations.
+- main.py handles terminal interaction, scheduling selection, report formatting, and advisor integration.
+- evaluate_advisor.py evaluates recommendations against measured algorithm performance.
+- tests/test_scheduler.py tests scheduling behavior and terminal interactions.
+- tests/test_advisor.py tests advisor features, scoring, and recommendations.
+Scope and Limitations
 - The simulator models CPU scheduling using integer arrival and burst times.
 - Preemptive algorithms simulate execution in one-time-unit increments.
-- The priority convention uses lower numbers for higher priorities.
+- Lower numerical priority values represent higher priorities.
 - Round Robin uses a configurable positive time quantum.
-- The simulator focuses on scheduling behavior and metrics rather than operating-system process execution or real context-switch overhead.
-
-## Future Enhancements
-
+- Synthetic training data may not represent real-world process distributions.
+- Recommendation accuracy depends on the generated training and evaluation workloads.
+- The simulator models scheduling behavior rather than actual operating-system process execution or real context-switch overhead.
+Future Enhancements
 - Export scheduling reports to CSV.
-- Add graphical Gantt charts.
-- Support user-selectable algorithms in batch experiments.
-- Add performance visualizations for comparing algorithms.
+- Generate consolidated benchmark reports across multiple random seeds.
+- Evaluate model performance across broader workload distributions.
+- Add graphical Gantt charts and performance visualizations.
 - Measure and report simulated context switches.
-
-## License
-
-No license has been specified yet. Add a `LICENSE` file if you intend to publish the project for reuse by others.
+- Explore alternative models and feature-engineering strategies.
+License
+No license has been specified. Add a LICENSE file if you intend to publish the project for reuse by others.
+EOF

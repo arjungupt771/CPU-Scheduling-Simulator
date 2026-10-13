@@ -279,7 +279,7 @@ def test_menu_runs_selected_algorithm_only():
         patch("main.read_processes", return_value=processes),
         patch("main.display_report") as display_report,
         patch("main.display_comparison") as display_comparison,
-        patch("builtins.input", side_effect=["1", "8"]),
+        patch("builtins.input", side_effect=["1", "9"]),
     ):
         main.main()
 
@@ -299,7 +299,7 @@ def test_menu_runs_all_six_algorithms():
         patch("main.read_processes", return_value=processes),
         patch("main.display_report") as display_report,
         patch("main.display_comparison") as display_comparison,
-        patch("builtins.input", side_effect=["7", "2", "8"]),
+        patch("builtins.input", side_effect=["7", "2", "9"]),
     ):
         main.main()
 
@@ -329,7 +329,7 @@ def test_menu_rejects_out_of_range_choice(capsys):
     with (
         patch("main.read_processes", return_value=processes),
         patch("main.display_report") as display_report,
-        patch("builtins.input", side_effect=["9", "8"]),
+        patch("builtins.input", side_effect=["10", "9"]),
     ):
         main.main()
 
@@ -348,7 +348,7 @@ def test_menu_exits_without_running_algorithms(capsys):
         patch("main.read_processes", return_value=processes),
         patch("main.display_report") as display_report,
         patch("main.display_comparison") as display_comparison,
-        patch("builtins.input", side_effect=["8"]),
+        patch("builtins.input", side_effect=["9"]),
     ):
         main.main()
 
